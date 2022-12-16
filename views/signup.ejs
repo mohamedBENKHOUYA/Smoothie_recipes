@@ -1,0 +1,138 @@
+<%- include('partials/header') %> 
+
+    <form action="/signup" method="post" enctype="text/plain">
+        <h2>Sign up</h2>
+        <label for="email">Email</label>
+        <input type="text" name="email"  />
+        <div class="error email"></div>
+        <label for="password">Password</label>
+        <input type="password" name="password"  />
+        <div class="error password"></div>
+        <input type="file" name="avatar" id="cv1" multiple/>
+        <input type="file" name="avatar2" id="cv2" />
+        <input type="file" name="avatar3" id="cv3" />
+        <div class="other_errors"></div>
+        <!-- <input type="radio" name="checkbo" /> -->
+        
+        <button >Sign up</button>
+    </form>
+    <p id="loading"></p>
+
+
+    <script >
+        const form = document.getElementsByTagName('form')[0];
+        const loadingPlaceHolder = document.getElementById('loading');
+        const errorPassword = document.querySelector('.error.password');
+        const errorEmail = document.querySelector('.error.email');
+        const otherErrors = document.querySelector('.other_errors');
+        // const formData = new FormData(form);
+        // window.formData = formData;
+        let promises = [];
+        if(form) {
+    
+            form.onsubmit = function(e) {
+                e.preventDefault();
+                const formData = new FormData(form);
+                formData.append('mine', "null");
+                window.formData = formData;
+                let obj = {};
+                for(let [name, value] of formData ) {
+                    if(typeof value === 'string') {
+                        obj[name] = value;
+                    }
+                    else {
+                       let reader = new FileReader();
+                       reader.readAsBinaryString(value);
+                       promises.push(
+                        new Promise(function(res, rej) {
+                            obj[name+Math.random()] = reader.result;
+    
+                            reader.addEventListener('progress', (e) => {
+                            loadingPlaceHolder.textContent = 'reading...';} )
+                            reader.addEventListener('loadend', function(e) {
+                            loadingPlaceHolder.textContent = ''; res(reader.result)})
+                        })
+                       )
+                        
+                       
+                       
+                    }
+                }
+                Promise.all(promises).then((res) => {
+                    // console.log('obj: j', obj)
+                    const urlSearchParams = new URLSearchParams(formData);
+                    fetch('/signup', {
+                        method: 'post',
+                        body: formData
+                    })
+                    .then((res) => {
+                       return res.json();
+                    })
+                    .then((data) => {
+                        const res = data;
+                        isSuccess = res.success;
+                        console.log(window.errors = res.errors)
+                        switch(isSuccess) {
+                            case true: form.reset(); window.location.assign('/'); console.log(res); break;
+                            case false: 
+                                const { email: errorE,  password: errorP, ...rest } = res.errors;
+                                errorEmail.textContent = errorE;
+                                errorPassword.textContent = errorP;
+                                rest[Symbol.toPrimitive] = function(hint) {
+                                    let str = '';
+                                    Object.keys(rest).forEach((key) => {
+                                        str += rest[key] + '\n';
+                                    });
+                                    return str;
+                                }
+                                otherErrors.textContent = String(rest);
+                                break;
+                            default: break;
+
+                        }
+                    })
+                    // const xhr = new XMLHttpRequest();
+                    // xhr.upload.addEventListener('progress', updateProgress, false);
+                    // xhr.open('post', '/signup');
+                    // xhr.send(formData);
+                    // xhr.addEventListener('load', (e) => {
+                    //     const res = JSON.parse(xhr.response);
+                    //     isSuccess = res.success;
+                    //     console.log(window.errors = res.errors)
+                    //     switch(isSuccess) {
+                    //         case true: form.reset(); console.log(res); break;
+                    //         case false: 
+                    //             const { email: errorE,  password: errorP, ...rest } = res.errors;
+                    //             errorEmail.textContent = errorE;
+                    //             errorPassword.textContent = errorP;
+                    //             rest[Symbol.toPrimitive] = function(hint) {
+                    //                 let str = '';
+                    //                 Object.keys(rest).forEach((key) => {
+                    //                     str += rest[key] + '\n';
+                    //                 });
+                    //                 return str;
+                    //             }
+                    //             otherErrors.textContent = String(rest);
+                    //             break;
+                    //         default: break;
+
+                    //     }
+                    // });
+                    // xhr.addEventListener('error', (e) => {
+                    //     const { errorEmail: email, errorPassord: password } = e.response.errors;
+                    //     errorEmail.textContent = errorEmail;
+                    //     errorPassword.textContent = errorPassword;
+                    // })
+                    })
+                
+            }
+        }
+        
+    
+    function updateProgress(event) {
+        console.log('uploading: ',(event.loaded/event.total)*100 + '%');
+    }
+    </script> 
+    
+
+<%- include('partials/footer') %> 
